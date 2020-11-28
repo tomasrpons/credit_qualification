@@ -1,7 +1,3 @@
-# Credit Qualification
-
-This tool was designed to provide crucial information in determining which clients can access a bank loan and which clients should not. Real world data was provided for the making of this tool, so a data privacy disclaimer was needed.
-
 Relevant Information:
 
     This file concerns credit card applications.  All attribute names
@@ -10,7 +6,7 @@ Relevant Information:
 
 ## Dataset description
 
-First things first we will take a look at the diferent variables presented to us, as well as their data type
+First things first we will take a look at the different variables presented to us, as well as their data type
 
 Number of Attributes: 15 + class attribute
 
@@ -208,7 +204,7 @@ df.head()
 
 
 
-First glance at our data, we can see that numerical variables differ significatly in scale.
+First glance at our data, we can see that numerical variables differ significantly in scale.
 
 
 ```python
@@ -240,7 +236,7 @@ df.info()
     memory usage: 86.2+ KB
     
 
-We can check wich columns presented the most amount of missing values.
+We can check which columns presented the most amount of missing values.
 
 
 ```python
@@ -355,7 +351,44 @@ df.describe()
 
 
 
-Using describe we can confirm that these numerical variables have notable diferences in scale, that is something we'll have to keep in mind.
+Using describe we can confirm that these numerical variables have notable differences in scale, that is something we'll have to keep in mind.
+
+## Data Visualization
+
+
+```python
+# Definition of a function to visualize correlation between variables
+import seaborn as sn
+import matplotlib.pyplot as plt
+
+
+def plot_correlation(df):
+    corr_matrix = df.corr()
+    heat_map = sn.heatmap(corr_matrix, annot=False)
+    plt.show(heat_map)
+```
+
+
+```python
+plot_correlation(df)
+```
+
+
+![png](output_16_0.png)
+
+
+Between this particular variables there seem to be no clear correlation that could indicate we should delete any of the variables.
+
+
+```python
+pd.plotting.scatter_matrix(df, alpha=0.2, figsize=(10, 10));
+```
+
+
+![png](output_18_0.png)
+
+
+Using this scatter matrix we can see some outlier values mostly on **A15**. The problem is that we cannot know if those are error or real values. If we were to see that the precision of our model is not as high as we expected, we could always come back and try removing them.
 
 ## Data Processing
 Our first step now will be separating our data into train set and test set.
@@ -365,6 +398,7 @@ Our first step now will be separating our data into train set and test set.
 from sklearn.model_selection import train_test_split
 
 X = df.drop(axis=1, columns='A16')
+
 # replacing target variable possible values with 1 and 0
 y = df['A16'].replace(to_replace=["+", "-"], value=[1, 0])
 
@@ -385,7 +419,7 @@ Now we will impute missing values
 
 
 ```python
-from sklearn.impute import SimpleImputer  
+from sklearn.impute import SimpleImputer
 from sklearn.impute import KNNImputer
 from sklearn.compose import ColumnTransformer
 ```
@@ -436,7 +470,8 @@ dif_values = [df[column].dropna().unique() for column in cat_var]
 # Now we create the transformers
 t_norm = ("normalizer", MinMaxScaler(feature_range=(0, 1)), num_var)
 t_nominal = ("onehot", OneHotEncoder(
-    sparse=False, categories=dif_values), cat_var)             # As the dataset isn't huge, we will set sparse=false
+    sparse=False, categories=dif_values), cat_var)             
+# As the dataset isn't huge, we will set sparse=false
 ```
 
 
@@ -444,30 +479,8 @@ t_nominal = ("onehot", OneHotEncoder(
 column_transformer_norm_enc = ColumnTransformer(transformers=[t_norm, t_nominal],
                                                 remainder='passthrough')
 
-column_transformer_norm_enc.fit(X_train_clean)
+column_transformer_norm_enc.fit(X_train_clean);
 ```
-
-
-
-
-    ColumnTransformer(remainder='passthrough',
-                      transformers=[('normalizer', MinMaxScaler(),
-                                     Index(['A2', 'A3', 'A8', 'A11', 'A14', 'A15'], dtype='object')),
-                                    ('onehot',
-                                     OneHotEncoder(categories=[array(['a', 'b'], dtype=object),
-                                                               array(['u', 'y', 'l'], dtype=object),
-                                                               array(['g', 'p', 'gg'], dtype=object),
-                                                               array(['q', 'w', 'm', 'r', 'cc', 'k', 'c', 'd', 'x', 'i', 'e', 'aa', 'ff',
-           'j'], dtype=object),
-                                                               array(['h', 'v', 'bb', 'ff', 'j', 'z', 'o', 'dd', 'n'], dtype=object),
-                                                               array(['t', 'f'], dtype=object),
-                                                               array(['t', 'f'], dtype=object),
-                                                               array(['f', 't'], dtype=object),
-                                                               array(['g', 's', 'p'], dtype=object)],
-                                                   sparse=False),
-                                     Index(['A1', 'A4', 'A5', 'A6', 'A7', 'A9', 'A10', 'A12', 'A13'], dtype='object'))])
-
-
 
 
 ```python
@@ -478,7 +491,7 @@ X_test_transformed = column_transformer_norm_enc.transform(X_test_clean)
 And with this transformations, we end our data preprocessing
 
 ## Model Selection
-We all know learning from any test set is a huge mistake that will compromise the precission of our estimations of performance. That is why we will separate even further our train set into validation train and validation test sets.
+We all know learning from any test set is a huge mistake that will compromise the precision of our estimations of performance. That is why we will separate even further our train set into validation train and validation test sets.
 
 
 ```python
@@ -491,95 +504,112 @@ As our performance metrics, we will use accuracy
 
 ```python
 from sklearn.metrics import accuracy_score
+
+from sklearn.model_selection import validation_curve
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import make_scorer
 ```
 
-Now it begings the process of training different models to see wich one performs the best and with what hyperparameters.
-For this project, we selected K-Nearest Neighbors (weighted and not weighted), Decision Tree Classifier and Logistic Regression.
+Now it begins the process of training different models to see which one performs the best and with what hyperparameters. For this project, we selected **K-Nearest Neighbors**, **Decision Tree Classifier** and **Logistic Regression**.
+
+
+```python
+from sklearn.model_selection import validation_curve
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import make_scorer
+from sklearn.metrics import classification_report
+```
 
 ### Decision Tree Classifier
 
 
 ```python
-from sklearn.tree import DecisionTreeClassifier
+from sklearn import tree
 
-best_Tree_model = None
-best_AC_T = 0
+acc_scorer = make_scorer(accuracy_score, greater_is_better=True)
+pipe_tree = make_pipeline(tree.DecisionTreeClassifier(random_state=1))
 
-for i in range(1, 100):
-    model_T = DecisionTreeClassifier(max_depth=i)
-    model_T.fit(X_val_train, y_val_train)
-    y_pred_T = model_T.predict(X_val_test)
-    AC_Tree = accuracy_score(y_val_test, y_pred_T)
+depths = np.arange(1, 31)
+num_leafs = [1, 5, 10, 20, 50, 100]
 
-    if AC_Tree > best_AC_T:
-        best_AC_T = AC_Tree
-        best_Tree_model = model_T
-
-# print('The best Decision Tree Classifier had a depth of: ',
-#       best_Tree_model.max_depth)
-# print('With and Accuracy of: ', round(best_AC_T, 3))
+param_grid_tree = [{'decisiontreeclassifier__max_depth': depths,
+                    'decisiontreeclassifier__min_samples_leaf': num_leafs}]
 ```
 
-The best Decision Tree Classifier had a depth of:  6    
-With and Accuracy of:  0.928
 
-### Distance Weighted K-Nearest Neighbors
+```python
+from sklearn.model_selection import GridSearchCV
+
+gs_tree = GridSearchCV(estimator=pipe_tree,
+                       param_grid=param_grid_tree, scoring='accuracy', cv=10)
+best_tree = gs_tree.fit(X_train_transformed, y_train)
+```
+
+
+```python
+print(classification_report(
+    best_tree.best_estimator_.predict(X_train_transformed), y_train))
+print(best_tree.best_params_)
+print(best_tree.best_score_)
+```
+
+                  precision    recall  f1-score   support
+    
+               0       0.85      0.93      0.89       289
+               1       0.92      0.82      0.87       262
+    
+        accuracy                           0.88       551
+       macro avg       0.88      0.88      0.88       551
+    weighted avg       0.88      0.88      0.88       551
+    
+    {'decisiontreeclassifier__max_depth': 4, 'decisiontreeclassifier__min_samples_leaf': 20}
+    0.8674350649350648
+    
+
+### K-Nearest Neighbors
 
 
 ```python
 from sklearn import neighbors
 
-best_KNN_D = None
-best_AC_KNN_D = 0
+acc_scorer = make_scorer(accuracy_score, greater_is_better=True)
+pipe_knn = make_pipeline(neighbors.KNeighborsClassifier())
 
-for i in range(1, 100):
-    KNN_D_model = neighbors.KNeighborsClassifier(
-        n_neighbors=i, weights='distance')
-    KNN_D_model.fit(X_val_train, y_val_train)
-    y_pred_KNN_D = KNN_D_model.predict(X_val_test)
+n_neighbors = [number for number in np.arange(1, 32) if number % 2 == 1]
+weights = ['uniform', 'distance']
+metrics = ['euclidean', 'manhattan']
 
-    AC_KNN_D = accuracy_score(y_val_test, y_pred_KNN_D)
-
-    if AC_KNN_D > best_AC_KNN_D:
-        best_AC_KNN_D = AC_KNN_D
-        best_KNN_D = KNN_D_model
-
-# print('The best distance weighted KNN model had: ',
-#       best_KNN_D.n_neighbors, ' neighbors')
-# print('With an accuracy of: ', round(best_AC_KNN_D, 3))
+param_grid_knn = [{'kneighborsclassifier__n_neighbors': n_neighbors, 'kneighborsclassifier__weights': weights,
+                   'kneighborsclassifier__metric': metrics}]
 ```
-
-The best distance weighted KNN model had:  40  neighbors  
-With an accuracy of:  0.919
-
-### Not Weighted K-Nearest Neighbors
 
 
 ```python
-from sklearn import neighbors
-
-best_KNN_U = None
-best_AC_KNN_U = 0
-
-for i in range(1, 100):
-    KNN_U_model = neighbors.KNeighborsClassifier(
-        n_neighbors=i, weights='uniform')
-    KNN_U_model.fit(X_val_train, y_val_train)
-    y_pred_KNN_U = KNN_U_model.predict(X_val_test)
-
-    AC_KNN_U = accuracy_score(y_val_test, y_pred_KNN_U)
-
-    if AC_KNN_U > best_AC_KNN_U:
-        best_AC_KNN_U = AC_KNN_U
-        best_KNN_U = KNN_U_model
-
-# print('The best not weighted KNN model had: ',
-#       best_KNN_D.n_neighbors, ' neighbors')
-# print('With an accuracy of: ', round(best_AC_KNN_D, 3))
+gs_knn = GridSearchCV(estimator=pipe_knn,
+                      param_grid=param_grid_knn, scoring='accuracy', cv=10)
+best_knn = gs_knn.fit(X_train_transformed, y_train)
 ```
 
-The best not weighted KNN model had: 40 neighbors  
-With an accuracy of: 0.919
+
+```python
+print(classification_report(
+    best_knn.best_estimator_.predict(X_train_transformed), y_train))
+print(best_knn.best_params_)
+print(best_knn.best_score_)
+```
+
+                  precision    recall  f1-score   support
+    
+               0       1.00      1.00      1.00       315
+               1       1.00      1.00      1.00       236
+    
+        accuracy                           1.00       551
+       macro avg       1.00      1.00      1.00       551
+    weighted avg       1.00      1.00      1.00       551
+    
+    {'kneighborsclassifier__metric': 'manhattan', 'kneighborsclassifier__n_neighbors': 27, 'kneighborsclassifier__weights': 'distance'}
+    0.883733766233766
+    
 
 ### Logistic Regression
 
@@ -587,46 +617,57 @@ With an accuracy of: 0.919
 ```python
 from sklearn import linear_model
 
-LogR_model = linear_model.LogisticRegression(
-    max_iter=20000, penalty='none', fit_intercept=True, random_state=123)
-LogR_model.fit(X_val_train, y_val_train)
-y_pred_LogR = LogR_model.predict(X_val_test)
+import warnings
+warnings.filterwarnings('ignore')
 
-AC_LogR = accuracy_score(y_val_test, y_pred_LogR)
+pipe_lr = make_pipeline(linear_model.LogisticRegression())
 
-print("Logistic Regression model had the following coeficients: \n", LogR_model.coef_)
-print("Accuracy: ", round(AC_LogR, 5))
+penalty = ['l1', 'l2']
+c = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+
+param_grid_lr = {'logisticregression__penalty': penalty,
+                 'logisticregression__C': c}
+
+gs_lr = GridSearchCV(
+    pipe_lr, param_grid=param_grid_lr, scoring='accuracy')
+gs_lr.fit(X_train_transformed, y_train);
 ```
-
-    Logistic Regression model had the following coeficients: 
-     [[  0.54512457  -1.13751313   1.78327063   9.05423909  -5.9583447
-       15.93291865  -0.08989456  -0.28535717   0.07024966  -0.4455014
-        0.           0.07024966  -0.4455014    0.          -0.51642635
-        0.33065104  -0.51281162   4.16481675   1.78493893  -0.63033784
-       -0.07534405   0.17111417   1.93482775   0.35350374   2.31896792
-       -0.43179881  -4.39978618  -4.86756717   1.65236382   1.37986192
-       -0.48524295   3.89445997   5.78178813  -3.8028768  -12.15040702
-       -1.31685497   4.67165616   1.86432309  -2.23957482   0.15237269
-       -0.52762442  -0.12488661  -0.25036513  -1.05918775  -1.03367138
-        1.71760741]]
-    Accuracy:  0.9009
-    
-
-## Model Training
-We identified (it was close, mostly because of our great data preprocessing) that **Decision Tree Classifier** was the winner. Now it's time to train that model with all of our train data (keeping the winning depth of 6) to obtain the *down to earth* performance of our model.
 
 
 ```python
-model = DecisionTreeClassifier(max_depth=6)
-model.fit(X_train_transformed, y_train)
-y_pred = model.predict(X_test_transformed)
-accuracy = accuracy_score(y_test, y_pred)
-
-# print('Model Accuracy: ', round(accuracy, 3))
+print(classification_report(gs_lr.best_estimator_.predict(X_train_transformed), y_train))
+print(gs_lr.best_params_)
+print(gs_lr.best_score_)
 ```
 
-Model Accuracy:  0.804
+                  precision    recall  f1-score   support
+    
+               0       0.88      0.93      0.90       298
+               1       0.91      0.85      0.88       253
+    
+        accuracy                           0.89       551
+       macro avg       0.90      0.89      0.89       551
+    weighted avg       0.89      0.89      0.89       551
+    
+    {'logisticregression__C': 1, 'logisticregression__penalty': 'l2'}
+    0.8783456183456184
+    
+
+## Model Training
+We identified (it was close, mostly because of our great data preprocessing) that **K-Nearest Neighbors** was the winner. Now it's time to train that model with all of our train data (keeping the best model parameters) to obtain the *down to earth* performance of our model.
+
+
+```python
+model = neighbors.KNeighborsClassifier(metric='manhattan',n_neighbors=27,weights='distance')
+model.fit(X_train_transformed,y_train)
+y_pred = model.predict(X_test_transformed)
+acc = accuracy_score(y_test,y_pred)
+print('The accuracy of our model is :',round(acc,4))
+```
+
+    The accuracy of our model is : 0.8261
+    
 
 ## Conclusion
 
-The tool we developed to help determining which clients can access a bank loan has an estimated accuracy of 80%
+The tool we developed to help determining which clients can access a bank loan has an estimated accuracy of 83%
