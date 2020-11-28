@@ -654,7 +654,7 @@ print(gs_lr.best_score_)
     
 
 ## Model Training
-We identified (it was close, mostly because of our great data preprocessing) that **K-Nearest Neighbors** was the winner. Now it's time to train that model with all of our train data (keeping the best model parameters) to obtain the *down to earth* performance of our model.
+We identified (it was close, mostly because of our data preprocessing) that **K-Nearest Neighbors** was the winner. Now it's time to train that model with all of our train data (keeping the best model parameters) to obtain the *down to earth* performance of our model.
 
 
 ```python
